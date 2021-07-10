@@ -234,5 +234,6 @@ mod tests {
             (Stat::Stamina, 5),
             (Stat::Energy, 5)
         ])));
+        // will accessing fields like this work?  since I derived Eq and PartialEq, can I make these assertions?
     }
 }
