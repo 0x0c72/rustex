@@ -24,8 +24,8 @@ enum EquipmentSlotStatus {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum InventorySlotStatus {
-    Occupied(Item),
+enum InventorySlotStatus<T> {
+    Occupied(T), // this needs to be generic
     Empty
 }
 
@@ -101,7 +101,7 @@ impl Inventory {
     // self is &mut because I'm changing what's in the hashmap??
     fn add<T: CanHold>(&mut self, item: &T) -> Result<(), InventoryError> {
         // checking for open slot, add it to the hashmap otherwise return error InventoryFull
-        self.slots.iter().map(|k, v| 
+        self.slots.iter().map(|k, v|  // should this be &self?
             if v == InventorySlotStatus::Empty { 
                 v = InventorySlotStatus::Occupied(&item) 
             } else { 
@@ -109,13 +109,16 @@ impl Inventory {
             });
         // how do i return Ok and Err from this? (let alone any fn that returns Result<>)
     }
+    fn get_open_slots(&self) -> u8 {
+        self.slots.iter().filter(|&(k, v)| *v == )
+    }
 }
 
 trait CanHold {
     fn add_to_inventory(&self, player: &Player) -> Result<(), InventoryError>;
 }
 
-trait CanEquip {
+trait CanEquip: CanHold {
     fn equip(&self) -> Result<(), EquipError>;
     fn check_requirements(&self, player: &Player) -> Result<(), EquipError>;
 }
@@ -157,6 +160,8 @@ impl CanEquip for Equipment {
         }       
     }
     // i just know i'm doing something wrong here lol
+    // iterate over requirements HashMap and check if each value in requirements[Stat] > owner.stats[Stat]
+    // return EquipError:Requirements(RequirementsError(requirements)) if any of them are
     fn check_requirements(&self) -> Result<(), EquipError> {
         //  this approach?
         self.requirements.all(|k, v| 
@@ -164,7 +169,7 @@ impl CanEquip for Equipment {
                 if self.owner.stats.get(k) < requirements.get(k) {
                     Err(EquipError::Requirements(RequirementsError::new(self.requirements)))
                 } else {
-                    Ok()
+                    Ok() // what goes in Ok()?
                 }
             } else  {
                 Err(EquipError:Requirements(RequirementsError::new(requirements)))
