@@ -168,7 +168,12 @@ impl Player {
             name,
             Inventory::new(),
             HashMap::<EquipmentSlot, Equipment>new(),
-            HashMap::<Stat, u16>new()
+            HashMap::<Stat, u16>::from_iter(IntoIter::new([// does this work?
+                (Strength, 5),
+                (Dexterity, 5),
+                (Stamina, 5),
+                (Energy, 5)
+            ]))
         }
     }
 }
