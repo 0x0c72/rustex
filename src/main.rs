@@ -143,17 +143,17 @@ impl CanEquip for Equipment {
     fn equip(&self) -> Result<(), Self::Error> {
         // check if slot is empty
         self.check_requirements()?; // can I call this like this?  If it returns an error how can I make this fn exit?
-        let slot_status = self.owner.equipped.get(self.slot);
-        match (slot_status) {
+        if let slot_status = self.owner.equipped.get(self.slot) { // instead of match (slot_status) on next line
             EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap?  should i pass by reference?
             EquipmentSlotStatus::Occupied(value) => { 
-                add_to_inventory(value, self.owner);
+                add_to_inventory(value, self.owner); //do i need & for these references to fields?
                 self.owner.equipped.get_mut(self.slot) = &self;
             }// does a comma go here?
         }       
     }
     // i just know i'm doing something wrong here lol
     fn check_requirements(&self) -> Result<(), EquipError> {
+        //  this approach?
         self.requirements.all(|k, v| 
             if self.owner.stats.contains_key(k) { 
                 if self.owner.stats.get(k) < requirements.get(k) {
@@ -164,7 +164,7 @@ impl CanEquip for Equipment {
             } else  {
                 Err(EquipError:Requirements(RequirementsError::new(requirements)))
             });
-        // or this approach?
+        // or this approach? which is more rust like?
         for (stat, value) in &*self.requirements { // immutable borrow so the original still exists?
             if self.owner.stats.get(stat) < value {
                 Err(EquipError::Requirements(RequirementsError::new(self.requirements)))
