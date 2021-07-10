@@ -101,15 +101,15 @@ impl Inventory {
     fn add<T: CanHold>(&mut self, item: &T) -> Result<_, InventoryError> {
         // checking for open slot, add it to the hashmap otherwise return error InventoryFull
         self.slots.iter().map(|k, v|  // should this be &self?
-            match(v.take()){
+            match(v){
                 None => {
                     self.slots.get_mut(k) = Some(item);
-                    break;
+                    Ok()
                 }, // slot is open, add item
-                Some(_) => continue,//continue checking for open slot
+                Some(_) => {},//continue checking for open slot
             }
         );
-        Err(InventorySlotError:InventoryFull)
+        Err(InventoryError:InventoryFull)
             /*
             if v == InventorySlotStatus::Empty { 
                 v = InventorySlotStatus::Occupied(&item) 
@@ -124,12 +124,12 @@ impl Inventory {
 }
 
 trait CanHold {
-    fn add_to_inventory(&self, player: &Player) -> Result<(), InventoryError>;
+    fn add_to_inventory(&self, player: &Player) -> Result<_, InventoryError>;
 }
 
 trait CanEquip: CanHold {
     fn equip(&self) -> Result<(), EquipError>;
-    fn check_requirements(&self, player: &Player) -> Result<(), EquipError>;
+    fn check_requirements(&self, player: &Player) -> Result<_, EquipError>;
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -157,13 +157,14 @@ impl Equipment {
 }
 
 impl CanEquip for Equipment {
-    fn equip(&self) -> Result<(), Self::Error> {
+    type Error = EquipError;
+    fn equip(&self) -> Result<_, Self::Error> {
         // check if slot is empty
-        self.check_requirements()?; // can I call this like this?  If it returns an error how can I make this fn exit?
-        if let slot_status = self.owner.equipped.get(self.slot) { // instead of match (slot_status) on next line
+        self.check_requirements()?;
+        match (self.owner.equipped.get(self.slot)) { 
             None => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap? &self or self?
-            Some(value) => { 
-                add_to_inventory(value, self.owner); //do i need & for these references to fields?
+            Some(item) => { 
+                add_to_inventory(item, self.owner)?; //do i need & for these references to fields?
                 self.owner.equipped.get_mut(self.slot) = &self;
             }
         }       
@@ -171,7 +172,7 @@ impl CanEquip for Equipment {
     // i just know i'm doing something wrong here lol
     // iterate over requirements HashMap and check if each value in requirements[Stat] > owner.stats[Stat]
     // return EquipError:Requirements(RequirementsError(requirements)) if any of them are
-    fn check_requirements(&self) -> Result<(), EquipError> {
+    fn check_requirements(&self) -> Result<_, Self::Error> {
         //  this approach?
         self.requirements.all(|k, v| 
             if self.owner.stats.contains_key(k) { 
