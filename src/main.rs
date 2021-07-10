@@ -1,5 +1,6 @@
 use thiserror::Error;
 use std::collections::HashMap;
+use std::iterator::IntoIter;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Stat {
@@ -14,6 +15,12 @@ enum EquipmentSlot {
     Head,
     Body,
     Legs
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum EquipmentSlotStatus {
+    Occupied(Equipment),
+    Empty
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -73,8 +80,8 @@ impl Error for RequirementsError {
 struct Player {
     name: String,
     inventory: Inventory::new(),
-    equipped: HashMap<EquipmentSlot, Equipment>,
-    stats: HashMap<Stat, u16>, // 
+    equipped: HashMap<EquipmentSlot, EquipmentSlotStatus>,
+    stats: HashMap<Stat, u16>,
 }
 
 struct Inventory {
@@ -123,7 +130,8 @@ impl Item {
 struct Equipment {
     name: String,
     owner: Player, // should this be &Player do i use & in struct field type definitions?
-    requirements: HashMap<Stat, u16>
+    requirements: HashMap<Stat, u16>,
+    slot: EquipmentSlot
 }
 
 impl Equipment {
@@ -133,13 +141,22 @@ impl Equipment {
 
 impl CanEquip for Equipment {
     fn equip(&self) -> Result<(), Self::Error> {
-        self.owner.
+        // check if slot is empty
+        self.check_requirements()?; // can I call this like this?  If it returns an error how can I make this fn exit?
+        let slot_status = self.owner.equipped.get(self.slot);
+        match (slot_status) {
+            EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap?  should i pass by reference?
+            EquipmentSlotStatus::Occupied(value) => { 
+                add_to_inventory(value, self.owner);
+                self.owner.equipped.get_mut(self.slot) = &self; // do i need unwrap?  should i pass by reference?
+            }
+        }       
     }
     // i just know i'm doing something wrong here lol
-    fn check_requirements(&self, player: &Player) -> Result<(), EquipError> {
+    fn check_requirements(&self) -> Result<(), EquipError> {
         self.requirements.all(|k, v| 
-            if player.stats.contains_key(k) { 
-                if player.stats.get(k) < requirements.get(k) {
+            if self.owner.stats.contains_key(k) { 
+                if self.owner.stats.get(k) < requirements.get(k) {
                     Err(EquipError:Requirements(RequirementsError::new(requirements)))
                 } else {
                     Ok()
@@ -167,7 +184,7 @@ impl Player {
         Player {
             name,
             Inventory::new(),
-            HashMap::<EquipmentSlot, Equipment>new(),
+            HashMap::<EquipmentSlot, EquipmentSlotStatus>new(),
             HashMap::<Stat, u16>::from_iter(IntoIter::new([// does this work?
                 (Strength, 5),
                 (Dexterity, 5),
@@ -178,11 +195,11 @@ impl Player {
     }
 }
 
-fn equip<T: CanEquip>(player: &Player, equipment: &T) {
+fn equip<T: CanEquip>(equipment: &T, player: &Player) {
     equipment.equip(&player);
 }   
 
-fn add_to_inventory<T: CanHold>(player: &Player, item: &T) {
+fn add_to_inventory<T: CanHold>(item: &T, player: &Player) {
     item.add_to_inventory(&player);
 }   
 
