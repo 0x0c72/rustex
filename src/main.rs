@@ -152,7 +152,7 @@ impl CanEquip for Equipment {
         // check if slot is empty
         self.check_requirements()?; // can I call this like this?  If it returns an error how can I make this fn exit?
         if let slot_status = self.owner.equipped.get(self.slot) { // instead of match (slot_status) on next line
-            EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap?  should i pass by reference?
+            EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap? &self or self?
             EquipmentSlotStatus::Occupied(value) => { 
                 add_to_inventory(value, self.owner); //do i need & for these references to fields?
                 self.owner.equipped.get_mut(self.slot) = &self;
