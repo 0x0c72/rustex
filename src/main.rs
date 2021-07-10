@@ -122,7 +122,9 @@ trait CanEquip {
 
 #[derive(Debug, PartialEq, Eq)]
 struct Item {
-
+    name: String,
+    owner: Player,
+    inventory_slot: Option<u8>
 }
 
 impl Item {
@@ -134,12 +136,12 @@ struct Equipment {
     name: String,
     owner: Player, // should this be &Player do i use & in struct field type definitions?
     requirements: HashMap<Stat, u16>,
-    slot: EquipmentSlot
+    slot: EquipmentSlot,
+    inventory_slot: Option<u8>
 }
 
 impl Equipment {
-    name: String,
-    owner: Player
+
 }
 
 impl CanEquip for Equipment {
