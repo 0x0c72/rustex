@@ -148,8 +148,8 @@ impl CanEquip for Equipment {
             EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap?  should i pass by reference?
             EquipmentSlotStatus::Occupied(value) => { 
                 add_to_inventory(value, self.owner);
-                self.owner.equipped.get_mut(self.slot) = &self; // do i need unwrap?  should i pass by reference?
-            }
+                self.owner.equipped.get_mut(self.slot) = &self;
+            }// does a comma go here?
         }       
     }
     // i just know i'm doing something wrong here lol
@@ -157,13 +157,19 @@ impl CanEquip for Equipment {
         self.requirements.all(|k, v| 
             if self.owner.stats.contains_key(k) { 
                 if self.owner.stats.get(k) < requirements.get(k) {
-                    Err(EquipError:Requirements(RequirementsError::new(requirements)))
+                    Err(EquipError::Requirements(RequirementsError::new(self.requirements)))
                 } else {
                     Ok()
                 }
             } else  {
                 Err(EquipError:Requirements(RequirementsError::new(requirements)))
             });
+        // or this approach?
+        for (stat, value) in &*self.requirements { // immutable borrow so the original still exists?
+            if self.owner.stats.get(stat) < value {
+                Err(EquipError::Requirements(RequirementsError::new(self.requirements)))
+            }
+        }
     }
 }
 
@@ -185,11 +191,12 @@ impl Player {
             name,
             Inventory::new(),
             HashMap::<EquipmentSlot, EquipmentSlotStatus>new(),
-            HashMap::<Stat, u16>::from_iter(IntoIter::new([// does this work?
-                (Strength, 5),
-                (Dexterity, 5),
-                (Stamina, 5),
-                (Energy, 5)
+            // can I create an anonymous HashMap like this?  Is there a better way?
+            HashMap::<Stat, u16>::from_iter(IntoIter::new([
+                (Stat::Strength, 5),
+                (Stat::Dexterity, 5),
+                (Stat::Stamina, 5),
+                (Stat::Energy, 5)
             ]))
         }
     }
