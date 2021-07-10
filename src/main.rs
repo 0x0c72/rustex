@@ -11,29 +11,23 @@ enum Stat {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum EquipmentSlot {
+enum EquipmentSlot {    
     Head,
     Body,
     Legs
 }
-
+/*
 #[derive(Debug, PartialEq, Eq)]
-enum EquipmentSlotStatus {
+enum EquipmentSlotStatus { // make this Option<T>?
     Occupied(Equipment),
     Empty
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum InventorySlotStatus<T> {
-    Occupied(T), // this needs to be generic
+    Occupied(T), // this needs to be generic, should this enum be Option<T> as well?
     Empty
-}
-
-#[derive(Debug, PartialEq, Eq, Error)]
-enum InventorySlotError {
-    #[error("Slot is occupied")]
-    SlotOccupied(InventorySlotStatus)
-}
+}*/
 
 #[derive(Debug, PartialEq, Eq, Error)]
 enum InventoryError {
@@ -48,6 +42,10 @@ enum EquipError {
     #[error("Item requirements not met")]
     Requirements(RequirementsError)
 }
+
+type EquipSlotStatus = Option<Equipment>;
+
+type InventorySlotStatus<T> = Option<T>;
 
 #[derive(Debug, PartialEq, Eq)]
 struct RequirementsError {
@@ -81,6 +79,7 @@ struct Player {
     name: String,
     inventory: Inventory::new(),
     equipped: HashMap<EquipmentSlot, EquipmentSlotStatus>,
+    //equipped: HashMap<EquipmentSlot, Option<Equipment>>,
     stats: HashMap<Stat, u16>,
 }
 
@@ -92,21 +91,31 @@ struct Inventory {
 impl Inventory {
     fn new(&self) -> Self {
         // how do i initialize the HashMap to have 40 slots with InventorySlotStatus::Empty?
-        let inventory = HashMap::<u8, InventorySlotStatus>new();
+        let inventory = HashMap::<u8, InventorySlotStatus<T>>new();
         for i in 1..=40 {
-            inventory.insert(i, InventorySlotStatus::Empty);
+            inventory.insert(None); // do I need to insert none?
         }
         inventory
     }
     // self is &mut because I'm changing what's in the hashmap??
-    fn add<T: CanHold>(&mut self, item: &T) -> Result<(), InventoryError> {
+    fn add<T: CanHold>(&mut self, item: &T) -> Result<_, InventoryError> {
         // checking for open slot, add it to the hashmap otherwise return error InventoryFull
         self.slots.iter().map(|k, v|  // should this be &self?
+            match(v.take()){
+                None => {
+                    self.slots.get_mut(k) = Some(item);
+                    break;
+                }, // slot is open, add item
+                Some(_) => continue,//continue checking for open slot
+            }
+        );
+        Err(InventorySlotError:InventoryFull)
+            /*
             if v == InventorySlotStatus::Empty { 
                 v = InventorySlotStatus::Occupied(&item) 
-            } else { 
+
                 InventorySlotError::SlotOccupied(InventorySlotStatus::Occupied(&item))
-            });
+            });*/
         // how do i return Ok and Err from this? (let alone any fn that returns Result<>)
     }
     fn get_open_slots(&self) -> u8 {
@@ -152,11 +161,11 @@ impl CanEquip for Equipment {
         // check if slot is empty
         self.check_requirements()?; // can I call this like this?  If it returns an error how can I make this fn exit?
         if let slot_status = self.owner.equipped.get(self.slot) { // instead of match (slot_status) on next line
-            EquipmentSlotStatus::Empty => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap? &self or self?
-            EquipmentSlotStatus::Occupied(value) => { 
+            None => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap? &self or self?
+            Some(value) => { 
                 add_to_inventory(value, self.owner); //do i need & for these references to fields?
                 self.owner.equipped.get_mut(self.slot) = &self;
-            }// does a comma go here?
+            }
         }       
     }
     // i just know i'm doing something wrong here lol
@@ -201,6 +210,7 @@ impl Player {
             name,
             Inventory::new(),
             HashMap::<EquipmentSlot, EquipmentSlotStatus>new(),
+            //HashMap::<EquipmentSlot, Option<Equipment>>new(),
             // can I create an anonymous HashMap like this?  Is there a better way?
             HashMap::<Stat, u16>::from_iter(IntoIter::new([
                 (Stat::Strength, 5),
@@ -235,6 +245,7 @@ mod tests {
         assert_eq!(p.name, "John");
         assert_eq!(p.inventory, Inventory::new());
         assert_eq!(p.equipped, HashMap::<EquipmentSlot, EquipmentSlotStatus>new());
+        //assert_eq!(p.equipped, HashMap::<EquipmentSlot, Option<Equipment>>new());
         assert_eq!(p.stats, HashMap::<Stat, u16>::from_iter(IntoIter::new([
             (Stat::Strength, 5),
             (Stat::Dexterity, 5),
