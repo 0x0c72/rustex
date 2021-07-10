@@ -202,13 +202,14 @@ impl Player {
     }
 }
 
+// what should these return? how can i handle any errors returned?
 fn equip<T: CanEquip>(equipment: &T, player: &Player) {
     equipment.equip(&player);
 }   
 
 fn add_to_inventory<T: CanHold>(item: &T, player: &Player) {
     item.add_to_inventory(&player);
-}   
+}
 
 fn main() {
     println!("Hello, world!");
