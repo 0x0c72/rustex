@@ -84,6 +84,7 @@ struct Player {
     stats: HashMap<Stat, u16>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct Inventory {
     slots: HashMap<u8, InventorySlotStatus>
 }
@@ -119,6 +120,7 @@ trait CanEquip {
     fn check_requirements(&self, player: &Player) -> Result<(), EquipError>;
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct Item {
 
 }
@@ -127,6 +129,7 @@ impl Item {
 
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct Equipment {
     name: String,
     owner: Player, // should this be &Player do i use & in struct field type definitions?
@@ -213,4 +216,23 @@ fn add_to_inventory<T: CanHold>(item: &T, player: &Player) {
 
 fn main() {
     println!("Hello, world!");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_player_fields() {
+        let p = Player::new(String::from("John"));
+        assert_eq!(p.name, "John");
+        assert_eq!(p.inventory, Inventory::new());
+        assert_eq!(p.equipped, HashMap::<EquipmentSlot, EquipmentSlotStatus>new());
+        assert_eq!(p.stats, HashMap::<Stat, u16>::from_iter(IntoIter::new([
+            (Stat::Strength, 5),
+            (Stat::Dexterity, 5),
+            (Stat::Stamina, 5),
+            (Stat::Energy, 5)
+        ])));
+    }
 }
