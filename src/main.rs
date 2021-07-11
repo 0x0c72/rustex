@@ -16,18 +16,6 @@ enum EquipmentSlot {
     Body,
     Legs
 }
-/*
-#[derive(Debug, PartialEq, Eq)]
-enum EquipmentSlotStatus { // make this Option<T>?
-    Occupied(Equipment),
-    Empty
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum InventorySlotStatus<T> {
-    Occupied(T), // this needs to be generic, should this enum be Option<T> as well?
-    Empty
-}*/
 
 #[derive(Debug, PartialEq, Eq, Error)]
 enum InventoryError {
@@ -78,8 +66,7 @@ impl Error for RequirementsError {
 struct Player {
     name: String,
     inventory: Inventory::new(),
-    equipped: HashMap<EquipmentSlot, EquipmentSlotStatus>,
-    //equipped: HashMap<EquipmentSlot, Option<Equipment>>,
+    equipped: HashMap<EquipmentSlot, Option<Equipment>>,
     stats: HashMap<Stat, u16>,
 }
 
@@ -91,7 +78,7 @@ struct Inventory {
 impl Inventory {
     fn new(&self) -> Self {
         // how do i initialize the HashMap to have 40 slots with InventorySlotStatus::Empty?
-        let inventory = HashMap::<u8, InventorySlotStatus<T>>new();
+        let mut inventory = HashMap::<u8, InventorySlotStatus<T>>new();
         for i in 1..=40 {
             inventory.insert(None); // do I need to insert none?
         }
@@ -101,9 +88,9 @@ impl Inventory {
     fn add<T: CanHold>(&mut self, item: &T) -> Result<_, InventoryError> {
         // checking for open slot, add it to the hashmap otherwise return error InventoryFull
         self.slots.iter().map(|k, v|  // should this be &self?
-            match(v){
+            match v {
                 None => {
-                    self.slots.get_mut(k) = Some(item);
+                    self.slots.get_mut(k) = Some(item); // user insert instead
                     Ok()
                 }, // slot is open, add item
                 Some(_) => {},//continue checking for open slot
@@ -146,7 +133,7 @@ impl Item {
 #[derive(Debug, PartialEq, Eq)]
 struct Equipment {
     name: String,
-    owner: Player, // should this be &Player do i use & in struct field type definitions?
+    owner: Player,
     requirements: HashMap<Stat, u16>,
     slot: EquipmentSlot,
     inventory_slot: Option<u8>
@@ -161,7 +148,7 @@ impl CanEquip for Equipment {
     fn equip(&self) -> Result<_, Self::Error> {
         // check if slot is empty
         self.check_requirements()?;
-        match (self.owner.equipped.get(self.slot)) { 
+        match self.owner.equipped.get(self.slot) { 
             None => self.owner.equipped.get_mut(self.slot) = &self, // do i need unwrap? &self or self?
             Some(item) => { 
                 add_to_inventory(item, self.owner)?; //do i need & for these references to fields?
@@ -174,7 +161,7 @@ impl CanEquip for Equipment {
     // return EquipError:Requirements(RequirementsError(requirements)) if any of them are
     fn check_requirements(&self) -> Result<_, Self::Error> {
         //  this approach?
-        self.requirements.all(|k, v| 
+        self.requirements.map(|k, v| 
             if self.owner.stats.contains_key(k) { 
                 if self.owner.stats.get(k) < requirements.get(k) {
                     Err(EquipError::Requirements(RequirementsError::new(self.requirements)))
@@ -210,8 +197,7 @@ impl Player {
         Player {
             name,
             Inventory::new(),
-            HashMap::<EquipmentSlot, EquipmentSlotStatus>new(),
-            //HashMap::<EquipmentSlot, Option<Equipment>>new(),
+            HashMap::<EquipmentSlot, Option<Equipment>>new(),
             // can I create an anonymous HashMap like this?  Is there a better way?
             HashMap::<Stat, u16>::from_iter(IntoIter::new([
                 (Stat::Strength, 5),
@@ -245,8 +231,7 @@ mod tests {
         let p = Player::new(String::from("John"));
         assert_eq!(p.name, "John");
         assert_eq!(p.inventory, Inventory::new());
-        assert_eq!(p.equipped, HashMap::<EquipmentSlot, EquipmentSlotStatus>new());
-        //assert_eq!(p.equipped, HashMap::<EquipmentSlot, Option<Equipment>>new());
+        assert_eq!(p.equipped, HashMap::<EquipmentSlot, Option<Equipment>>new());
         assert_eq!(p.stats, HashMap::<Stat, u16>::from_iter(IntoIter::new([
             (Stat::Strength, 5),
             (Stat::Dexterity, 5),
